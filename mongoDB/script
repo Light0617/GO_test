@@ -1,0 +1,9 @@
+
+
+curl -X POST -H "Content-Type: applicaiton/json" -d '{"name":"Mike", "gender":"male", "Age": 26}' http://localhost:8080/user
+
+curl http://localhost:8080/user/<userId>
+
+curl http://localhost:8080/users
+
+curl -X DELETE http://localhost:8080/user/<userId>
