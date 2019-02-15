@@ -22,14 +22,20 @@ func NewUserController(s *mgo.Session) *UserController {
 func (uc UserController) GetUsers(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	us := []models.User{}
 
+	fromDate := 30
+	toDate := 50
 	//fetch user
-	if err := uc.session.DB("web-go").C("users").Find(bson.M{}).All(&us); err != nil {
+	if err := uc.session.DB("web-go").C("users").Find(
+		bson.M{
+			"age": bson.M{
+				"$gt": fromDate,
+				"$lt": toDate,
+			}}).All(&us); err != nil {
 		w.WriteHeader(404)
 		return
 	}
 
 	usj, _ := json.Marshal(us)
-	fmt.Println("u= %s\n", us)
 
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -37,63 +43,28 @@ func (uc UserController) GetUsers(w http.ResponseWriter, r *http.Request, p http
 }
 
 func (uc UserController) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	// Grab id
 	id := p.ByName("id")
 
-	// Verify id is ObjectId hex representation, otherwise return status not found
 	if !bson.IsObjectIdHex(id) {
-		w.WriteHeader(http.StatusNotFound) // 404
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-
-	// ObjectIdHex returns an ObjectId from the provided hex representation.
 	oid := bson.ObjectIdHex(id)
 
-	// composite literal
 	u := models.User{}
 
-	// Fetch user
+	//fetch user
 	if err := uc.session.DB("web-go").C("users").FindId(oid).One(&u); err != nil {
 		w.WriteHeader(404)
 		return
 	}
 
-	uj, err := json.Marshal(u)
-	if err != nil {
-		fmt.Println(err)
-	}
+	uj, _ := json.Marshal(u)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK) // 200
+	w.Header().Set("Content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "%s\n", uj)
 }
-
-// func (uc UserController) GetUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-// 	id := p.ByName("id")
-
-// 	if !bson.IsObjectIdHex(id) {
-// 		w.WriteHeader(http.StatusNotFound)
-// 		return
-// 	}
-
-// 	oid := bson.ObjectIdHex(id)
-// 	fmt.Println("%s\n", oid)
-
-// 	u := models.User{}
-
-// 	//fetch user
-// 	if err := uc.session.DB("web-go").C("users").FindId(oid).One(&u); err != nil {
-// 		w.WriteHeader(404)
-// 		return
-// 	}
-
-// 	uj, _ := json.Marshal(u)
-// 	fmt.Println("u= %s\n", u)
-
-// 	w.Header().Set("Content-type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-// 	fmt.Fprintf(w, "%s\n", uj)
-// }
 
 func (uc UserController) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	u := models.User{}
@@ -114,20 +85,6 @@ func (uc UserController) CreateUser(w http.ResponseWriter, r *http.Request, _ ht
 	fmt.Fprintf(w, "%s\n", uj)
 }
 
-// func (uc UserController) CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-// 	u := models.User{}
-
-// 	json.NewDecoder(r.Body).Decode(&u)
-// 	u.Id = bson.NewObjectId()
-
-// 	uc.session.DB("web-go").C("users").Insert(u)
-// 	uj, _ := json.Marshal(u)
-
-// 	w.Header().Set("Content-type", "application/json")
-// 	w.WriteHeader(http.StatusCreated)
-// 	fmt.Fprintf(w, "%s\n", uj)
-// }
-
 func (uc UserController) DeleteUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
 
@@ -145,4 +102,15 @@ func (uc UserController) DeleteUser(w http.ResponseWriter, r *http.Request, p ht
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "Deleted user", oid, "\n")
+}
+
+func (uc UserController) DeleteUsers(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+
+	_, err := uc.session.DB("web-go").C("users").RemoveAll(nil)
+	if err != nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
